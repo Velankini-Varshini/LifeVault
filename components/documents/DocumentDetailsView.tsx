@@ -5,17 +5,27 @@ import {
   FileText, Image as ImageIcon, Download, Share2, Trash2, 
   Shield, Clock, Users, ArrowLeft, Sparkles 
 } from "lucide-react";
-import { vaultDocuments } from "@/components/documents/vault-data";
+import { useVaultData } from "@/components/documents/vault-data";
 import { StatusBadge } from "@/components/documents/StatusBadge";
 import Link from "next/link";
 
 export function DocumentDetailsView({ docId }: { docId: string }) {
-  const doc = vaultDocuments.find((d) => d.id === docId) || vaultDocuments[0];
+  const { vaultDocuments, loading } = useVaultData();
+  const doc = vaultDocuments.find((d) => d.id === docId);
   const [sharedUsers, setSharedUsers] = useState([
     { name: "Priya Nair", email: "priya@example.com", role: "Owner" },
     { name: "Alina Nair", email: "alina@example.com", role: "Viewer" },
   ]);
   const [newEmail, setNewEmail] = useState("");
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center text-center">
+        <Shield className="h-12 w-12 text-slate-300 animate-pulse" />
+        <h2 className="mt-4 font-display text-lg font-semibold text-slate-500">Loading document details...</h2>
+      </div>
+    );
+  }
 
   if (!doc) {
     return (

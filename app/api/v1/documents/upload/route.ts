@@ -107,8 +107,10 @@ export async function POST(req: NextRequest) {
       log("6. PDF Pipeline: Attempting digital text extraction with pdf-parse");
       try {
         // Require directly to bypass CJS/ESM bundling issues in Next.js
-        const pdfParse = require("pdf-parse/lib/pdf-parse.js");
-        const pdfData = await pdfParse(buffer);
+        const { PDFParse } = await import("pdf-parse");
+        const parser = new PDFParse({ data: buffer });
+        const pdfData = await parser.getText();
+        await parser.destroy();
         const rawText = pdfData?.text ? pdfData.text.trim() : "";
         log("6. PDF Pipeline: pdf-parse raw text length", { length: rawText.length });
 
