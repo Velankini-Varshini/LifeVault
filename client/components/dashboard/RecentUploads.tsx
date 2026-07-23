@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FileText, MoreHorizontal } from "lucide-react";
-import { recentUploads, type RecentUpload } from "@/components/dashboard/dashboard-data";
+import { useDashboardData, type RecentUpload } from "@/components/dashboard/dashboard-data";
 
 const statusStyles: Record<RecentUpload["status"], string> = {
   processed: "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-450 dark:ring-emerald-800/50",
@@ -15,6 +15,12 @@ const statusLabel: Record<RecentUpload["status"], string> = {
 };
 
 export function RecentUploads() {
+  const { recentUploads, loading } = useDashboardData();
+
+  if (loading) {
+    return <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"><div className="text-sm text-slate-500 text-center">Loading recent uploads...</div></div>;
+  }
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-center justify-between">
@@ -25,6 +31,7 @@ export function RecentUploads() {
       </div>
 
       <ul className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
+        {recentUploads.length === 0 && <p className="text-xs text-slate-500 py-2">No documents uploaded yet.</p>}
         {recentUploads.map((doc) => (
           <li key={doc.name} className="flex items-center gap-3 py-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 dark:bg-slate-850">

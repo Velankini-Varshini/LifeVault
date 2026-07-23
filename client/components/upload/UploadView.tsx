@@ -41,50 +41,56 @@ export function UploadView() {
     }
   };
 
-  const processFile = (file: File) => {
+  const [uploadedData, setUploadedData] = useState<any>(null);
+
+  const processFile = async (file: File) => {
     setFileName(file.name);
-    // Convert to readable size
     const sizeInMB = file.size / (1024 * 1024);
     setFileSize(sizeInMB > 0.1 ? `${sizeInMB.toFixed(1)} MB` : `${(file.size / 1024).toFixed(0)} KB`);
     
-    // Start animation timeline
-    startUploadSimulation();
-  };
-
-  const startUploadSimulation = () => {
     setStep("uploading");
     setProgress(0);
 
-    // 1. Simulate Upload Progress (1.5 seconds)
+    // Simulate progress up to 90% while waiting for API
     const interval = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 100) {
+        if (prev >= 90) {
           clearInterval(interval);
-          // Go to OCR stage
-          setTimeout(() => {
-            setStep("ocr");
-            simulateOCR();
-          }, 400);
-          return 100;
+          setStep("ocr");
+          return 90;
         }
         return prev + 5;
       });
-    }, 70);
-  };
+    }, 400);
 
-  const simulateOCR = () => {
-    // 2. OCR text extraction scanning (2 seconds)
-    setTimeout(() => {
-      setStep("ai");
-      simulateAI();
-    }, 2000);
-  };
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
 
-  const simulateAI = () => {
-    // 3. AI document classification & tagging (2.5 seconds)
-    setTimeout(() => {
-      setStep("success");
-    }, 2500);
+      const response = await fetch("/api/v1/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      clearInterval(interval);
+      setProgress(100);
+
+      if (data.success && data.document) {
+        setStep("ai");
+        setTimeout(() => {
+          setUploadedData(data.document);
+          setStep("success");
+        }, 1500); // Brief pause to show AI step
+      } else {
+        alert(data.error || "Failed to upload");
+        resetUpload();
+      }
+    } catch (err) {
+      clearInterval(interval);
+      alert("An error occurred during upload.");
+      resetUpload();
+    }
   };
 
   const resetUpload = () => {
@@ -92,6 +98,7 @@ export function UploadView() {
     setProgress(0);
     setFileName("");
     setFileSize("");
+    setUploadedData(null);
   };
 
   return (
@@ -247,30 +254,34 @@ export function UploadView() {
                 <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <dt className="text-xs text-slate-400 dark:text-slate-500">Document Name</dt>
-                    <dd className="mt-1 font-medium text-slate-800 dark:text-slate-200 truncate">{fileName}</dd>
+                    <dd className="mt-1 font-medium text-slate-800 dark:text-slate-200 truncate">{uploadedData?.file_name || fileName}</dd>
                   </div>
                   <div>
                     <dt className="text-xs text-slate-400 dark:text-slate-500">Category Assigned</dt>
                     <dd className="mt-1 font-medium text-slate-800 dark:text-slate-200">
                       <span className="rounded bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-950 dark:border-indigo-900 dark:text-indigo-400">
-                        Identity
+                        {uploadedData?.category || "Uncategorized"}
                       </span>
                     </dd>
                   </div>
                   <div>
                     <dt className="text-xs text-slate-400 dark:text-slate-500">Expiry Date</dt>
-                    <dd className="mt-1 font-mono font-medium text-emerald-600 dark:text-emerald-400">Mar 14, 2027 (214 days left)</dd>
+                    <dd className="mt-1 font-mono font-medium text-emerald-600 dark:text-emerald-400">
+                      {uploadedData?.expiry_date ? new Date(uploadedData.expiry_date).toLocaleDateString() : "None detected"}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-xs text-slate-400 dark:text-slate-500">File Type & Size</dt>
-                    <dd className="mt-1 font-medium text-slate-800 dark:text-slate-200">PDF · {fileSize}</dd>
+                    <dd className="mt-1 font-medium text-slate-800 dark:text-slate-200">
+                      {uploadedData?.file_type?.toUpperCase() || "FILE"} · {fileSize}
+                    </dd>
                   </div>
                 </dl>
 
                 <div className="mt-4 border-t border-slate-200/60 dark:border-slate-800 pt-4">
                   <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">AI Summary</span>
                   <p className="mt-1.5 text-xs leading-relaxed text-slate-600 bg-white p-3 rounded-lg border border-slate-100 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300">
-                    Indian passport, issued New Delhi. Machine-readable, 10-year validity. Contains passport number, name, DOB, and citizenship details.
+                    {uploadedData?.summary || "Document processed successfully."}
                   </p>
                 </div>
               </div>

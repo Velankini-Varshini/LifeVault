@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import {
-  seededMessages,
   cannedResponses,
   defaultReply,
   type ChatMessage,
@@ -44,7 +43,7 @@ function findReply(question: string): ChatMessage {
 
 export function GlobalAIProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>(seededMessages);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -65,7 +64,7 @@ export function GlobalAIProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [toggleChat]);
 
-  const sendMessage = useCallback((text: string) => {
+  const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
 
@@ -80,35 +79,90 @@ export function GlobalAIProvider({ children }: { children: ReactNode }) {
     setMessages((prev) => [...prev, userMsg]);
     setIsTyping(true);
 
-    // Simulate AI thinking and streaming response
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/v1/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: trimmed }),
+      });
+      const data = await res.json();
+
       setIsTyping(false);
       setIsStreaming(true);
-      const reply = findReply(trimmed);
-      setMessages((prev) => [...prev, reply]);
 
-      // Complete streaming animation after brief delay
-      setTimeout(() => {
-        setIsStreaming(false);
-      }, 500);
-    }, 900);
+      const replyText = data.reply || (data.error ? `Error: ${data.error}` : "Sorry, I couldn't process that request.");
+
+      const reply: ChatMessage = {
+        id: `r-${Date.now()}`,
+        role: "assistant",
+        content: replyText,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        sources: data.sources || [],
+      };
+
+      setMessages((prev) => [...prev, reply]);
+    } catch (error) {
+      console.error(error);
+      setIsTyping(false);
+      setIsStreaming(true);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `r-${Date.now()}`,
+          role: "assistant",
+          content: "Sorry, I encountered an error. Please try again.",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    } finally {
+      setTimeout(() => setIsStreaming(false), 500);
+    }
   }, []);
 
-  const regenerateLast = useCallback(() => {
+  const regenerateLast = useCallback(async () => {
     if (messages.length === 0) return;
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
     if (!lastUserMsg) return;
 
     setIsTyping(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/v1/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: lastUserMsg.content }),
+      });
+      const data = await res.json();
+
       setIsTyping(false);
       setIsStreaming(true);
-      const reply = findReply(lastUserMsg.content);
+
+      const replyText = data.reply || (data.error ? `Error: ${data.error}` : "Sorry, I couldn't process that request.");
+
+      const reply: ChatMessage = {
+        id: `r-${Date.now()}`,
+        role: "assistant",
+        content: replyText,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        sources: data.sources || [],
+      };
+
       setMessages((prev) => [...prev, reply]);
-      setTimeout(() => {
-        setIsStreaming(false);
-      }, 500);
-    }, 900);
+    } catch (error) {
+      console.error(error);
+      setIsTyping(false);
+      setIsStreaming(true);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `r-${Date.now()}`,
+          role: "assistant",
+          content: "Sorry, I encountered an error. Please try again.",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    } finally {
+      setTimeout(() => setIsStreaming(false), 500);
+    }
   }, [messages]);
 
   const clearChat = useCallback(() => {

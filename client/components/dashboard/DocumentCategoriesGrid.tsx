@@ -3,15 +3,22 @@
 import React from "react";
 import { Shield, FileCheck, Stethoscope, Home, Award, DollarSign } from "lucide-react";
 import Link from "next/link";
+import { useDashboardData } from "@/components/dashboard/dashboard-data";
 
 export function DocumentCategoriesGrid() {
+  const { categoryCounts, loading } = useDashboardData();
+
+  if (loading) {
+    return <div className="space-y-3"><div className="flex items-center justify-between"><h3 className="font-display text-sm font-semibold text-slate-900 dark:text-white">Document Categories</h3></div><div className="text-sm text-slate-500 py-4">Loading categories...</div></div>;
+  }
+
   const categories = [
-    { name: "Identity", count: 10, icon: Shield, color: "text-indigo-600 bg-indigo-50 dark:bg-indigo-950 dark:text-indigo-400" },
-    { name: "Insurance", count: 8, icon: FileCheck, color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950 dark:text-emerald-400" },
-    { name: "Medical", count: 5, icon: Stethoscope, color: "text-rose-600 bg-rose-50 dark:bg-rose-950 dark:text-rose-400" },
-    { name: "Housing", count: 6, icon: Home, color: "text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-400" },
-    { name: "Education", count: 3, icon: Award, color: "text-sky-600 bg-sky-50 dark:bg-sky-950 dark:text-sky-400" },
-    { name: "Financial", count: 4, icon: DollarSign, color: "text-purple-600 bg-purple-50 dark:bg-purple-950 dark:text-purple-400" },
+    { name: "Identity", count: categoryCounts["Identity"] || 0, icon: Shield, color: "text-indigo-600 bg-indigo-50 dark:bg-indigo-950 dark:text-indigo-400" },
+    { name: "Insurance", count: categoryCounts["Insurance"] || 0, icon: FileCheck, color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950 dark:text-emerald-400" },
+    { name: "Medical", count: categoryCounts["Medical"] || 0, icon: Stethoscope, color: "text-rose-600 bg-rose-50 dark:bg-rose-950 dark:text-rose-400" },
+    { name: "Housing", count: categoryCounts["Housing"] || 0, icon: Home, color: "text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-400" },
+    { name: "Education", count: categoryCounts["Education"] || 0, icon: Award, color: "text-sky-600 bg-sky-50 dark:bg-sky-950 dark:text-sky-400" },
+    { name: "Financial", count: categoryCounts["Financial"] || 0, icon: DollarSign, color: "text-purple-600 bg-purple-50 dark:bg-purple-950 dark:text-purple-400" },
   ];
 
   return (

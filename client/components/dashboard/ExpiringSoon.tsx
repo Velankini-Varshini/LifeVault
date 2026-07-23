@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { expiringItems, type ExpiryItem } from "@/components/dashboard/dashboard-data";
+import { useDashboardData, type ExpiryItem } from "@/components/dashboard/dashboard-data";
 
 const statusStyles: Record<ExpiryItem["status"], string> = {
   safe: "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:ring-emerald-800/50",
@@ -14,6 +14,12 @@ const barStyles: Record<ExpiryItem["status"], string> = {
 };
 
 export function ExpiringSoon() {
+  const { expiringItems, loading } = useDashboardData();
+
+  if (loading) {
+    return <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"><div className="text-sm text-slate-500 text-center">Loading expiries...</div></div>;
+  }
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-center justify-between">
@@ -24,6 +30,7 @@ export function ExpiringSoon() {
       </div>
 
       <ul className="mt-4 space-y-3">
+        {expiringItems.length === 0 && <p className="text-xs text-slate-500">No documents expiring soon.</p>}
         {expiringItems.map((item) => (
           <li key={item.label} className="rounded-xl border border-slate-100 p-3 dark:border-slate-800/60 dark:bg-slate-900/50">
             <div className="flex items-center justify-between">

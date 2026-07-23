@@ -8,13 +8,7 @@ export type ConversationSummary = {
   updatedAt: string;
 };
 
-export const conversationHistory: ConversationSummary[] = [
-  { id: "c1", title: "Passport expiry", preview: "When does my passport expire?", updatedAt: "2h ago" },
-  { id: "c2", title: "Insurance overview", preview: "Show my insurance documents", updatedAt: "Yesterday" },
-  { id: "c3", title: "Degree confirmation", preview: "Find my engineering certificates", updatedAt: "2 days ago" },
-  { id: "c4", title: "PAN & Identity audit", preview: "Find my PAN card", updatedAt: "3 days ago" },
-  { id: "c5", title: "Aadhaar validation", preview: "Show my Aadhaar card", updatedAt: "1 week ago" },
-];
+export const conversationHistory: ConversationSummary[] = [];
 
 export const defaultSuggestedQuestions: string[] = [
   "When does my passport expire?",
@@ -32,6 +26,7 @@ export const defaultSuggestedQuestions: string[] = [
 export const suggestedQuestions = defaultSuggestedQuestions;
 
 export type SourceRef = {
+  id?: string;
   name: string;
   category: string;
 };
@@ -44,22 +39,7 @@ export type ChatMessage = {
   timestamp?: string;
 };
 
-export const seededMessages: ChatMessage[] = [
-  {
-    id: "m1",
-    role: "user",
-    content: "When does my passport expire?",
-    timestamp: "10:30 AM",
-  },
-  {
-    id: "m2",
-    role: "assistant",
-    content:
-      "Your passport (Passport — Alina.pdf) expires March 14, 2027 — that's 214 days from today. It was issued in New Delhi and is machine-readable with 10-year validity. LifeVault will automatically flag it once it's within 6 months of expiry.",
-    sources: [{ name: "Passport — Alina.pdf", category: "Identity" }],
-    timestamp: "10:30 AM",
-  },
-];
+export const seededMessages: ChatMessage[] = [];
 
 export const cannedResponses: { match: string; reply: ChatMessage }[] = [
   {

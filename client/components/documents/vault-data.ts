@@ -1,5 +1,5 @@
-// Mock content for the Document Vault. Shapes are stable on purpose so a
-// real documents API can drop in without touching the components.
+import { useState, useEffect } from "react";
+import { createClient } from "@/utils/supabase/client";
 
 export type DocumentCategory =
   | "Identity"
@@ -7,7 +7,8 @@ export type DocumentCategory =
   | "Warranty"
   | "Housing"
   | "Medical"
-  | "Financial";
+  | "Financial"
+  | "Other";
 
 export type DocumentStatus = "safe" | "soon" | "urgent" | "expired";
 
@@ -24,118 +25,10 @@ export type VaultDocument = {
   daysLeft: number | null;
   status: DocumentStatus;
   summary: string;
+  fileUrl?: string;
+  extractedText?: string;
+  metadata?: any;
 };
-
-export const vaultDocuments: VaultDocument[] = [
-  {
-    id: "doc-1",
-    name: "Passport — Alina",
-    category: "Identity",
-    fileKind: "pdf",
-    sizeLabel: "2.1 MB",
-    uploadedAt: "Jul 14, 2026",
-    expiryDate: "Mar 14, 2027",
-    daysLeft: 214,
-    status: "safe",
-    summary: "Indian passport, issued New Delhi. Machine-readable, 10-year validity.",
-  },
-  {
-    id: "doc-2",
-    name: "Car insurance policy",
-    category: "Insurance",
-    fileKind: "pdf",
-    sizeLabel: "884 KB",
-    uploadedAt: "Jul 13, 2026",
-    expiryDate: "Aug 24, 2026",
-    daysLeft: 41,
-    status: "soon",
-    summary: "State Farm comprehensive cover, 2022 Honda Civic. Premium paid in full.",
-  },
-  {
-    id: "doc-3",
-    name: "Fridge warranty",
-    category: "Warranty",
-    fileKind: "image",
-    sizeLabel: "1.4 MB",
-    uploadedAt: "Jul 12, 2026",
-    expiryDate: "Jul 20, 2026",
-    daysLeft: 6,
-    status: "urgent",
-    summary: "Samsung 3-door fridge, extended warranty via Best Buy. Covers compressor only.",
-  },
-  {
-    id: "doc-4",
-    name: "Rental lease 2026",
-    category: "Housing",
-    fileKind: "pdf",
-    sizeLabel: "3.2 MB",
-    uploadedAt: "Jul 11, 2026",
-    expiryDate: "Oct 18, 2026",
-    daysLeft: 96,
-    status: "safe",
-    summary: "12-month lease, 2BR apartment. Renewal notice required 60 days prior.",
-  },
-  {
-    id: "doc-5",
-    name: "Vet records — Milo",
-    category: "Medical",
-    fileKind: "pdf",
-    sizeLabel: "612 KB",
-    uploadedAt: "Jul 10, 2026",
-    expiryDate: null,
-    daysLeft: null,
-    status: "safe",
-    summary: "Vaccination history and last checkup notes for Milo (dog, age 4).",
-  },
-  {
-    id: "doc-6",
-    name: "Home insurance policy",
-    category: "Insurance",
-    fileKind: "pdf",
-    sizeLabel: "1.1 MB",
-    uploadedAt: "Jul 8, 2026",
-    expiryDate: "Oct 20, 2026",
-    daysLeft: 98,
-    status: "safe",
-    summary: "Lemonade homeowners policy. Covers fire, theft, and water damage.",
-  },
-  {
-    id: "doc-7",
-    name: "Gym membership receipt",
-    category: "Financial",
-    fileKind: "image",
-    sizeLabel: "540 KB",
-    uploadedAt: "Jul 6, 2026",
-    expiryDate: "Jul 26, 2026",
-    daysLeft: 12,
-    status: "soon",
-    summary: "Annual membership, auto-renews unless cancelled 5 days before expiry.",
-  },
-  {
-    id: "doc-8",
-    name: "Laptop warranty — Dell XPS",
-    category: "Warranty",
-    fileKind: "pdf",
-    sizeLabel: "398 KB",
-    uploadedAt: "Jul 2, 2026",
-    expiryDate: "Jun 30, 2026",
-    daysLeft: -14,
-    status: "expired",
-    summary: "3-year extended warranty, expired. Out-of-warranty repair only from here.",
-  },
-  {
-    id: "doc-9",
-    name: "Tax return 2025",
-    category: "Financial",
-    fileKind: "pdf",
-    sizeLabel: "2.8 MB",
-    uploadedAt: "Jun 28, 2026",
-    expiryDate: null,
-    daysLeft: null,
-    status: "safe",
-    summary: "Filed federal and state returns. Keep for 7 years per retention guidance.",
-  },
-];
 
 export const documentCategories: DocumentCategory[] = [
   "Identity",
@@ -145,3 +38,79 @@ export const documentCategories: DocumentCategory[] = [
   "Medical",
   "Financial",
 ];
+
+export function useVaultData() {
+  const [vaultDocuments, setVaultDocuments] = useState<VaultDocument[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  const fetchDocuments = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const { data: docs, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (docs) {
+      const now = new Date();
+      const mapped = docs.map(d => {
+        let daysLeft = null;
+        let status: DocumentStatus = "safe";
+
+        if (d.expiry_date) {
+          const expDate = new Date(d.expiry_date);
+          const diffTime = expDate.getTime() - now.getTime();
+          daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (daysLeft < 0) status = "expired";
+          else if (daysLeft <= 14) status = "urgent";
+          else if (daysLeft <= 45) status = "soon";
+        }
+
+        const sizeInMB = d.file_size_bytes / (1024 * 1024);
+        const sizeLabel = sizeInMB > 0.1 ? `${sizeInMB.toFixed(1)} MB` : `${(d.file_size_bytes / 1024).toFixed(0)} KB`;
+
+        return {
+          id: d.id,
+          name: d.file_name,
+          category: (d.category as DocumentCategory) || "Other",
+          fileKind: d.file_type === "pdf" ? "pdf" : "image",
+          sizeLabel,
+          uploadedAt: new Date(d.created_at).toLocaleDateString(),
+          expiryDate: d.expiry_date ? new Date(d.expiry_date).toLocaleDateString() : null,
+          daysLeft,
+          status,
+          summary: d.summary || "",
+          fileUrl: d.file_url,
+          extractedText: d.extracted_text,
+          metadata: {
+            person_name: d.person_name,
+            document_number: d.document_number,
+            issue_date: d.issue_date,
+            address: d.address
+          }
+        } as VaultDocument;
+      });
+      setVaultDocuments(mapped);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [supabase]);
+
+  const deleteDocument = async (id: string) => {
+    await supabase.from('documents').delete().eq('id', id);
+    setVaultDocuments(prev => prev.filter(d => d.id !== id));
+  };
+
+  return { vaultDocuments, loading, fetchDocuments, deleteDocument };
+}

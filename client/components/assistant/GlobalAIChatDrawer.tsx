@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import {
   Sparkles,
   X,
@@ -156,13 +157,15 @@ export function GlobalAIChatDrawer() {
                             </span>
                             <div className="flex flex-wrap gap-1.5">
                               {m.sources.map((src, idx) => (
-                                <span
+                                <Link
                                   key={idx}
-                                  className="inline-flex items-center gap-1 rounded bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-[10px] text-indigo-700 dark:bg-indigo-950 dark:border-indigo-900 dark:text-indigo-400"
+                                  href={src.id ? `/documents?docId=${src.id}` : "/documents"}
+                                  onClick={() => closeChat()}
+                                  className="inline-flex items-center gap-1 rounded bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700 hover:bg-indigo-100 hover:underline dark:bg-indigo-950 dark:border-indigo-900 dark:text-indigo-400 cursor-pointer transition-colors"
                                 >
                                   <FileText className="h-3 w-3" />
                                   <span>{src.name}</span>
-                                </span>
+                                </Link>
                               ))}
                             </div>
                           </div>

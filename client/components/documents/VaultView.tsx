@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { vaultDocuments, type VaultDocument, type DocumentCategory } from "@/components/documents/vault-data";
+import { useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { useVaultData, type VaultDocument, type DocumentCategory } from "@/components/documents/vault-data";
 import { VaultToolbar, type ViewMode, type StatusFilter } from "@/components/documents/VaultToolbar";
 import { DocumentCard } from "@/components/documents/DocumentCard";
 import { DocumentRow } from "@/components/documents/DocumentRow";
@@ -15,6 +16,20 @@ export function VaultView() {
   const [view, setView] = useState<ViewMode>("grid");
   const [activeDoc, setActiveDoc] = useState<VaultDocument | null>(null);
 
+  const { vaultDocuments, loading, deleteDocument } = useVaultData();
+  const searchParams = useSearchParams();
+  const docIdParam = searchParams.get("docId");
+
+  // Automatically open preview drawer if docId is present in URL search params
+  useEffect(() => {
+    if (docIdParam && vaultDocuments.length > 0) {
+      const match = vaultDocuments.find((d) => d.id === docIdParam);
+      if (match) {
+        setActiveDoc(match);
+      }
+    }
+  }, [docIdParam, vaultDocuments]);
+
   const filtered = useMemo(() => {
     return vaultDocuments.filter((doc) => {
       const matchesQuery = doc.name.toLowerCase().includes(query.toLowerCase());
@@ -25,7 +40,7 @@ export function VaultView() {
         (statusFilter === "expired" && doc.status === "expired");
       return matchesQuery && matchesCategory && matchesStatus;
     });
-  }, [query, category, statusFilter]);
+  }, [vaultDocuments, query, category, statusFilter]);
 
   const clearFilters = () => {
     setQuery("");
@@ -46,7 +61,9 @@ export function VaultView() {
         onViewChange={setView}
       />
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-24 text-slate-500">Loading vault...</div>
+      ) : filtered.length === 0 ? (
         <VaultEmptyState onClear={clearFilters} />
       ) : view === "grid" ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -62,7 +79,14 @@ export function VaultView() {
         </div>
       )}
 
-      <QuickPreviewDrawer doc={activeDoc} onClose={() => setActiveDoc(null)} />
+      <QuickPreviewDrawer
+        doc={activeDoc}
+        onClose={() => setActiveDoc(null)}
+        onDelete={(id) => {
+          deleteDocument(id);
+          setActiveDoc(null);
+        }}
+      />
     </div>
   );
 }

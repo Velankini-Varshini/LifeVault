@@ -1,7 +1,7 @@
 "use client";
 
 import { Files, Users, Clock, ShieldCheck, TrendingUp, TrendingDown, Minus, type LucideIcon } from "lucide-react";
-import { overviewStats, type OverviewStat } from "@/components/dashboard/dashboard-data";
+import { useDashboardData, type OverviewStat } from "@/components/dashboard/dashboard-data";
 
 const iconMap: Record<OverviewStat["icon"], LucideIcon> = {
   files: Files,
@@ -17,6 +17,12 @@ const trendMap: Record<OverviewStat["trend"], { icon: LucideIcon; className: str
 };
 
 export function OverviewCards() {
+  const { overviewStats, loading } = useDashboardData();
+
+  if (loading) {
+    return <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 max-w-full"><div className="col-span-full text-center py-4 text-sm text-slate-500">Loading overview...</div></div>;
+  }
+
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 max-w-full">
       {overviewStats.map((stat) => {

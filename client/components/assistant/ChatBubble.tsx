@@ -1,5 +1,6 @@
 import { Sparkles, FileText } from "lucide-react";
-import type { ChatMessage } from "@/lib/assistant-data";
+import Link from "next/link";
+import type { ChatMessage } from "@/components/assistant/assistant-data";
 
 export function ChatBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
@@ -20,19 +21,20 @@ export function ChatBubble({ message }: { message: ChatMessage }) {
         <Sparkles className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
       </span>
       <div className="max-w-[80%] space-y-2.5">
-        <div className="rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-2.5 text-sm leading-relaxed text-slate-800 dark:bg-slate-800 dark:text-slate-250 shadow-sm border border-transparent dark:border-slate-800/40">
+        <div className="rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-2.5 text-sm leading-relaxed text-slate-800 dark:bg-slate-800 dark:text-slate-200 shadow-sm border border-transparent dark:border-slate-800/40">
           {message.content}
         </div>
         {message.sources && message.sources.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {message.sources.map((source) => (
-              <span
-                key={source.name}
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-655 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
+              <Link
+                key={source.id || source.name}
+                href={source.id ? `/documents?docId=${source.id}` : "/documents"}
+                className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50/60 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 hover:underline dark:border-indigo-900/60 dark:bg-indigo-950/50 dark:text-indigo-400 cursor-pointer transition-colors"
               >
-                <FileText className="h-3 w-3 text-slate-400 dark:text-slate-500" />
+                <FileText className="h-3 w-3 text-indigo-500" />
                 {source.name}
-              </span>
+              </Link>
             ))}
           </div>
         )}

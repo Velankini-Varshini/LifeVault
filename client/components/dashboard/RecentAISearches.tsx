@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Sparkles, ArrowUpRight } from "lucide-react";
-import { recentSearches } from "@/components/dashboard/dashboard-data";
 
 export function RecentAISearches() {
   return (
@@ -12,22 +11,23 @@ export function RecentAISearches() {
         </Link>
       </div>
 
-      <ul className="mt-4 space-y-1">
-        {recentSearches.map((item) => (
-          <li key={item.query}>
-            <button className="group flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/40">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-950/40">
-                <Sparkles className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-slate-700 dark:text-slate-300">{item.query}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">{item.answeredAt}</p>
-              </div>
-              <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-slate-300 group-hover:text-indigo-500 dark:text-slate-655 dark:group-hover:text-indigo-400" />
-            </button>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-6 flex flex-col items-center justify-center gap-3 py-6 text-center">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-950/40">
+          <Sparkles className="h-5 w-5 text-indigo-400" />
+        </span>
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">No searches yet</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs">
+          Ask the AI assistant questions about your documents and they will appear here.
+        </p>
+        <Link
+          href="/ai-assistant"
+          className="mt-1 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          Try asking something
+          <ArrowUpRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
     </div>
   );
 }
