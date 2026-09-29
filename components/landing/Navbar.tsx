@@ -14,7 +14,7 @@ const navLinks = [
 ];
 
 export function Navbar() {
-  const user = { id: 1 };
+  const user = null;
   const [open, setOpen] = useState(false);
 
   return (
