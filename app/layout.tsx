@@ -1,4 +1,4 @@
-import { AuthProvider } from "@/context/AuthContext";
+
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
@@ -17,6 +17,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
   themeColor: "#4f46e5",
 };
 
@@ -47,9 +49,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col font-sans bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-150 overflow-x-hidden">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        {children}
       </body>
     </html>
   );

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createClient as createServerClient } from "@/utils/supabase/client";
 import { cookies } from "next/headers";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { createWorker } from "tesseract.js";
 
 export const maxDuration = 60;
 export const runtime = "nodejs";
@@ -24,7 +23,7 @@ export async function POST(req: NextRequest) {
       {
         cookies: {
           getAll() { return cookieStore.getAll(); },
-          setAll(cookiesToSet) {
+          setAll(cookiesToSet: any[]) {
             try {
               cookiesToSet.forEach(({ name, value, options }) =>
                 cookieStore.set(name, value, options)
@@ -134,7 +133,7 @@ export async function POST(req: NextRequest) {
         log("6. PDF Pipeline: Running Gemini Vision on PDF inlineData");
         try {
           const base64Data = buffer.toString("base64");
-          const visionModel = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
+          const visionModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
           const visionResult = await visionModel.generateContent([
             {
               inlineData: {
@@ -145,7 +144,7 @@ export async function POST(req: NextRequest) {
             "Extract ALL readable text from this PDF document verbatim. Return raw plain text only.",
           ]);
           extractedText = visionResult.response.text();
-          extractionMethod = "gemini-1.5-flash vision (scanned PDF)";
+          extractionMethod = "gemini-2.5-flash vision (scanned PDF)";
           log("6. PDF Pipeline: Gemini Vision SUCCESS", {
             method: extractionMethod,
             extractedLength: extractedText.length,
@@ -157,21 +156,29 @@ export async function POST(req: NextRequest) {
         }
       }
     } else {
-      // JPG / PNG Image Branch -> Tesseract OCR
-      log("6. Image Pipeline: Running Tesseract.js OCR");
+      // JPG / PNG Image Branch -> Gemini Vision OCR
+      log("6. Image Pipeline: Running Gemini Vision OCR");
       try {
-        const worker = await createWorker("eng");
-        const { data: { text } } = await worker.recognize(buffer);
-        extractedText = text;
-        await worker.terminate();
-        extractionMethod = "tesseract-ocr (image)";
-        log("6. Image Pipeline: Tesseract SUCCESS", {
+        const base64Data = buffer.toString("base64");
+        const visionModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const visionResult = await visionModel.generateContent([
+          {
+            inlineData: {
+              mimeType: file.type || "image/jpeg",
+              data: base64Data,
+            },
+          },
+          "Extract ALL readable text from this image verbatim. Return raw plain text only.",
+        ]);
+        extractedText = visionResult.response.text();
+        extractionMethod = "gemini-2.5-flash vision (image)";
+        log("6. Image Pipeline: Gemini Vision SUCCESS", {
           extractedLength: extractedText.length,
           snippet: extractedText.substring(0, 200),
         });
-      } catch (ocrErr: any) {
-        log("6. Image Pipeline: Tesseract FAILED", { error: ocrErr?.message });
-        processingError = ocrErr?.message || String(ocrErr);
+      } catch (visionErr: any) {
+        log("6. Image Pipeline: Gemini Vision FAILED", { error: visionErr?.message });
+        processingError = visionErr?.message || String(visionErr);
       }
     }
 
@@ -179,10 +186,10 @@ export async function POST(req: NextRequest) {
     let aiMetadata: Record<string, any> = {};
 
     if (extractedText && extractedText.length > 5) {
-      log("7. Metadata AI: Sending extracted text to Gemini 1.5 Flash for JSON structuring");
+      log("7. Metadata AI: Sending extracted text to Gemini 2.5 Flash for JSON structuring");
       try {
         const metaModel = genAI.getGenerativeModel({
-          model: "gemini-3.6-flash",
+          model: "gemini-2.5-flash",
           generationConfig: { responseMimeType: "application/json" },
         });
 

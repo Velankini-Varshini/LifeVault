@@ -91,12 +91,12 @@ export function useDashboardData() {
         const total = docs.length;
 
         // Compute total storage
-        const bytes = docs.reduce((acc, curr) => acc + (curr.file_size_bytes || 0), 0);
+        const bytes = docs.reduce((acc: number, curr: any) => acc + (curr.file_size_bytes || 0), 0);
         const mb = (bytes / (1024 * 1024)).toFixed(1);
 
         // Compute expiring docs
         const now = new Date();
-        const expiringDocs = docs.filter(d => d.expiry_date).map(d => {
+        const expiringDocs = docs.filter((d: any) => d.expiry_date).map((d: any) => {
           const expDate = new Date(d.expiry_date);
           const diffTime = expDate.getTime() - now.getTime();
           const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -106,21 +106,21 @@ export function useDashboardData() {
             daysLeft,
             status: daysLeft <= 14 ? "urgent" : daysLeft <= 45 ? "soon" : "safe" as "urgent" | "soon" | "safe"
           };
-        }).filter(d => d.daysLeft >= 0).sort((a, b) => a.daysLeft - b.daysLeft);
+        }).filter((d: any) => d.daysLeft >= 0).sort((a: any, b: any) => a.daysLeft - b.daysLeft);
 
         setExpiringItems(expiringDocs.slice(0, 5));
 
         setOverviewStats([
           { label: "Total Documents", value: total.toString(), delta: total > 0 ? "Active in vault" : "No documents", trend: total > 0 ? "up" : "flat", icon: "files" },
           { label: "Shared with Family", value: "0", delta: "Coming soon", trend: "flat", icon: "users" },
-          { label: "Expiring Soon", value: expiringDocs.filter(d => d.daysLeft <= 45).length.toString(), delta: "Action required", trend: expiringDocs.length > 0 ? "down" : "flat", icon: "clock" },
+          { label: "Expiring Soon", value: expiringDocs.filter((d: any) => d.daysLeft <= 45).length.toString(), delta: "Action required", trend: expiringDocs.length > 0 ? "down" : "flat", icon: "clock" },
           { label: "Storage Used", value: `${mb} MB`, delta: "of 5 GB limit", trend: "up", icon: "shield" },
         ]);
 
         const counts: Record<string, number> = {
           Identity: 0, Insurance: 0, Medical: 0, Housing: 0, Education: 0, Financial: 0, Other: 0
         };
-        docs.forEach(d => {
+        docs.forEach((d: any) => {
           const cat = d.category || "Other";
           if (counts[cat] !== undefined) {
             counts[cat] += 1;
@@ -130,7 +130,7 @@ export function useDashboardData() {
         });
         setCategoryCounts(counts);
 
-        setRecentUploads(docs.slice(0, 5).map(d => ({
+        setRecentUploads(docs.slice(0, 5).map((d: any) => ({
           name: d.file_name,
           category: d.category || "Uncategorized",
           uploadedAt: new Date(d.created_at).toLocaleDateString(),

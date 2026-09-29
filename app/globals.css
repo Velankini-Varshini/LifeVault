@@ -28,6 +28,12 @@
   --foreground: #f8fafc;
 }
 
+html, body {
+  overscroll-behavior-y: none; /* Prevents "pull-to-refresh" bounce that shifts layout */
+  -webkit-text-size-adjust: 100%; /* Prevents automatic text resizing */
+  touch-action: manipulation; /* Prevents double-tap to zoom */
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);

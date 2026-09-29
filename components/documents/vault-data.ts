@@ -60,7 +60,7 @@ export function useVaultData() {
 
     if (docs) {
       const now = new Date();
-      const mapped = docs.map(d => {
+      const mapped = docs.map((d: any) => {
         let daysLeft = null;
         let status: DocumentStatus = "safe";
 

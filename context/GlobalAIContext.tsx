@@ -43,7 +43,34 @@ function findReply(question: string): ChatMessage {
 
 export function GlobalAIProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: "init_1",
+      role: "user",
+      content: "Can you summarize my Passport details?",
+      timestamp: new Date(Date.now() - 120000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    },
+    {
+      id: "init_2",
+      role: "assistant",
+      content: "Certainly! Based on your vault, I see you have an Indian Passport belonging to Priya Nair (Passport Number: A1234567). It was issued on Jan 1, 2020, and is valid until Jan 1, 2030.",
+      timestamp: new Date(Date.now() - 110000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      sources: [ { id: "doc_1", name: "Passport_Priya.pdf", category: "Identity" } ]
+    },
+    {
+      id: "init_3",
+      role: "user",
+      content: "What about my health insurance?",
+      timestamp: new Date(Date.now() - 60000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    },
+    {
+      id: "init_4",
+      role: "assistant",
+      content: "You have a Health Insurance Policy with Star Health. Please note that it is expiring in 15 days on Jan 1, 2025. You should renew it soon!",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      sources: [ { id: "doc_2", name: "Health_Insurance_Policy.pdf", category: "Insurance" } ]
+    }
+  ]);
   const [isTyping, setIsTyping] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);

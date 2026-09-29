@@ -19,13 +19,15 @@ import {
   X,
   Check,
 } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { createClient } from "@/utils/supabase/client";
 
-export function Topbar({ onOpenMenu }: { onOpenMenu?: () => void }) {
-  const { user, signOut } = useAuth();
+export function Topbar() {
+  const user = { id: "123", displayName: "Priya Nair", email: "priya@example.com" };
+  const signOut = async () => {};
   const router = useRouter();
 
   // Dropdown & Popover States
@@ -34,6 +36,11 @@ export function Topbar({ onOpenMenu }: { onOpenMenu?: () => void }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [allDocs, setAllDocs] = useState<any[]>([]);
+  const supabase = createClient();
 
   const searchRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -57,6 +64,56 @@ export function Topbar({ onOpenMenu }: { onOpenMenu?: () => void }) {
       document.documentElement.classList.remove("dark");
     }
   };
+
+  // Fetch real user notifications
+  useEffect(() => {
+    async function fetchNotifications() {
+      if (!user) return;
+      const { data: docs } = await supabase
+        .from("documents")
+        .select("id, file_name, category, created_at, expiry_date, ocr_status")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (!docs) return;
+      
+      setAllDocs(docs);
+
+      const items: any[] = [];
+      const now = new Date();
+
+      docs.forEach((doc: any) => {
+        // Upload notifications
+        items.push({
+          id: `upload-${doc.id}`,
+          type: "upload",
+          title: doc.ocr_status === "completed" ? "Document processed" : doc.ocr_status === "failed" ? "Processing failed" : "Document uploaded",
+          description: `"${doc.file_name}"`,
+          unread: (now.getTime() - new Date(doc.created_at).getTime()) < 24 * 60 * 60 * 1000,
+        });
+
+        // Expiry notifications
+        if (doc.expiry_date) {
+          const expDate = new Date(doc.expiry_date);
+          const daysLeft = Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysLeft <= 60 && daysLeft >= 0) {
+            items.push({
+              id: `expiry-${doc.id}`,
+              type: "expiry",
+              title: `Expires soon`,
+              description: `"${doc.file_name}" expires in ${daysLeft} days.`,
+              unread: daysLeft <= 30,
+            });
+          }
+        }
+      });
+
+      items.sort((a, b) => (a.unread === b.unread ? 0 : a.unread ? -1 : 1));
+      setNotifications(items.slice(0, 3));
+      setUnreadCount(items.filter((i) => i.unread).length);
+    }
+    fetchNotifications();
+  }, [user, supabase]);
 
   // Keyboard Cmd+K listener for search
   useEffect(() => {
@@ -104,30 +161,17 @@ export function Topbar({ onOpenMenu }: { onOpenMenu?: () => void }) {
       .toUpperCase();
   };
 
-  // Mock Search items
-  const mockDocuments = [
-    { name: "Passport — Alina.pdf", category: "Identity", path: "/documents" },
-    { name: "PAN Card — Priya Nair.pdf", category: "Identity", path: "/documents" },
-    { name: "Car Insurance Policy.pdf", category: "Insurance", path: "/documents" },
-    { name: "Rental Lease 2026.pdf", category: "Housing", path: "/documents" },
-  ];
-
-  const filteredDocs = mockDocuments.filter((d) =>
-    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    d.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredDocs = allDocs
+    .filter((d) =>
+      d.file_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.category?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .slice(0, 5); // show top 5 matches
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white/90 px-4 sm:px-6 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/90">
       {/* LEFT: Menu Hamburger + Logo */}
       <div className="flex items-center gap-3 shrink-0">
-        <button
-          onClick={onOpenMenu}
-          aria-label="Open menu drawer"
-          className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 cursor-pointer active:scale-95 transition-transform"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
 
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 shadow-sm">
@@ -188,7 +232,7 @@ export function Topbar({ onOpenMenu }: { onOpenMenu?: () => void }) {
                     {filteredDocs.map((doc, idx) => (
                       <Link
                         key={idx}
-                        href={doc.path}
+                        href={`/documents`} // In a real app this might go to doc details
                         onClick={() => setSearchOpen(false)}
                         className="flex items-center justify-between rounded-xl px-2.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
                       >
@@ -197,11 +241,11 @@ export function Topbar({ onOpenMenu }: { onOpenMenu?: () => void }) {
                             <FileText className="h-3.5 w-3.5" />
                           </span>
                           <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                            {doc.name}
+                            {doc.file_name}
                           </span>
                         </div>
                         <span className="text-[10px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded shrink-0">
-                          {doc.category}
+                          {doc.category || "Other"}
                         </span>
                       </Link>
                     ))}
@@ -265,7 +309,9 @@ export function Topbar({ onOpenMenu }: { onOpenMenu?: () => void }) {
             className="relative flex h-11 w-11 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-transform cursor-pointer"
           >
             <Bell className="h-5 w-5" />
-            <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-600 ring-2 ring-white dark:ring-slate-900" />
+            {unreadCount > 0 && (
+              <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-600 ring-2 ring-white dark:ring-slate-900" />
+            )}
           </button>
 
           <AnimatePresence>
@@ -280,29 +326,29 @@ export function Topbar({ onOpenMenu }: { onOpenMenu?: () => void }) {
                   <h4 className="font-display text-sm font-semibold text-slate-900 dark:text-white">
                     Notifications
                   </h4>
-                  <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400">
-                    2 Unread
-                  </span>
+                  {unreadCount > 0 && (
+                    <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400">
+                      {unreadCount} Unread
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-3 space-y-3 text-xs">
-                  <div className="flex gap-3 rounded-xl bg-amber-50/50 p-2.5 border border-amber-100 dark:bg-amber-950/20 dark:border-amber-900/30">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300 font-bold">
-                      !
-                    </span>
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">Visa renewal warning</p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">Expires in 6 days (July 25, 2026).</p>
+                  {notifications.length === 0 ? (
+                    <div className="text-center py-4 text-slate-500">No new notifications</div>
+                  ) : notifications.map((n) => (
+                    <div key={n.id} className={`flex gap-3 rounded-xl p-2.5 border ${n.unread ? 'bg-indigo-50/50 border-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900/30' : 'bg-slate-50 border-slate-100 dark:bg-slate-800/50 dark:border-slate-700/50'}`}>
+                      {n.type === 'expiry' ? (
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300 font-bold">!</span>
+                      ) : (
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300"><Check className="h-4 w-4" /></span>
+                      )}
+                      <div>
+                        <p className={`font-semibold ${n.unread ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`}>{n.title}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">{n.description}</p>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex gap-3 rounded-xl bg-indigo-50/50 p-2.5 border border-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900/30">
-                    <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">AI Suggestion</p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">Share 'Rental lease' with roommates.</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
 
                 <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800 text-center">

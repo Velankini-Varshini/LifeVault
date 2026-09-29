@@ -52,7 +52,7 @@ export function NotificationsView() {
       const items: NotificationItem[] = [];
       const now = new Date();
 
-      docs.forEach((doc) => {
+      docs.forEach((doc: any) => {
         // Upload notifications
         items.push({
           id: `upload-${doc.id}`,

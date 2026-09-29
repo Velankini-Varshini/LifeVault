@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createClient as createServerClient } from "@/utils/supabase/client";
 import { cookies } from "next/headers";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
           getAll() {
             return cookieStore.getAll();
           },
-          setAll(cookiesToSet) {
+          setAll(cookiesToSet: any[]) {
             try {
               cookiesToSet.forEach(({ name, value, options }) =>
                 cookieStore.set(name, value, options)
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { query } = await req.json();
+    const { query, history = [] } = await req.json();
     if (!query) {
       return NextResponse.json({ error: "Missing query" }, { status: 400 });
     }
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     const sources: { id: string; name: string; category: string }[] = [];
 
     if (docs && docs.length > 0) {
-      contextStr = docs.map((doc, i) => {
+      contextStr = docs.map((doc: any, i: number) => {
         sources.push({ id: doc.id, name: doc.file_name, category: doc.category || "Uncategorized" });
         return `
 --- DOCUMENT ${i + 1} ---
@@ -85,27 +85,37 @@ ${doc.extracted_text || doc.summary || "No text available"}
       return NextResponse.json({ error: "GEMINI_API_KEY environment variable is not configured." }, { status: 500 });
     }
 
-    // 4. Query Gemini 3.6 Flash
-    const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
-    const prompt = `
-You are LifeVault AI, a secure and smart assistant grounded in the user's personal document vault.
-Answer the user's question accurately using ONLY the document context provided below.
+    // 4. Query Gemini 1.5 Flash
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      systemInstruction: `You are LifeVault AI, a highly empathetic, secure, and smart assistant for the user's personal document vault. 
+You act as a warm, human-like concierge who is helpful, conversational, and polite while maintaining data accuracy.
 
 === USER DOCUMENT VAULT CONTEXT ===
 ${contextStr}
 ====================================
 
-USER QUESTION: "${query}"
-
 INSTRUCTIONS:
-1. Provide a direct, helpful, and friendly answer based on the vault documents.
+1. Provide a conversational, direct, helpful, and friendly answer based ONLY on the vault documents.
 2. If the user asks about dates (like completion date, issue date, or expiry date), cite the exact date found in the text or metadata.
 3. Mention the specific document filename where you found the information.
-4. If the question cannot be answered from the provided documents, politely state that you couldn't find relevant details in their vault. Do NOT fabricate information.
-`;
+4. If the question cannot be answered from the provided documents, politely and humanely state that you couldn't find relevant details in their vault. Do NOT fabricate information.
+5. Maintain a conversational flow, as if you are a personal, caring human assistant.`
+    });
 
     console.log("[ASSISTANT] Sending query prompt to Gemini 1.5 Flash...");
-    const result = await model.generateContent(prompt);
+    
+    // Map frontend history to Gemini history format
+    const formattedHistory = history.map((msg: any) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content || "" }]
+    }));
+
+    const chat = model.startChat({
+      history: formattedHistory,
+    });
+
+    const result = await chat.sendMessage(query);
     const replyText = result.response.text();
     console.log("[ASSISTANT] Gemini response received successfully!");
 

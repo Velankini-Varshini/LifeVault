@@ -2,10 +2,11 @@
 
 import React, { useState } from "react";
 import { User, ShieldAlert, Key, Globe, UserCheck, Loader2 } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+
 
 export function ProfileView() {
-  const { user, isMock } = useAuth();
+  const user = { displayName: "Priya Nair", email: "priya@example.com" };
+  const isMock = true;
   
   // Profile state
   const [name, setName] = useState(user?.displayName || "Priya Nair");

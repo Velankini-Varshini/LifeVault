@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X, Vault } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -14,7 +14,7 @@ const navLinks = [
 ];
 
 export function Navbar() {
-  const { user } = useAuth();
+  const user = { id: 1 };
   const [open, setOpen] = useState(false);
 
   return (

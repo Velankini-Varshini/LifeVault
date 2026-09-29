@@ -2,7 +2,8 @@
 
 import React from "react";
 import { OverviewCards } from "@/components/dashboard/OverviewCards";
-import { ActivityChart } from "@/components/dashboard/ActivityChart";
+import dynamic from "next/dynamic";
+const ActivityChart = dynamic(() => import("@/components/dashboard/ActivityChart").then(mod => mod.ActivityChart), { ssr: false, loading: () => <div className="h-[320px] w-full animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800"></div> });
 import { ExpiringSoon } from "@/components/dashboard/ExpiringSoon";
 import { RecentUploads } from "@/components/dashboard/RecentUploads";
 import { RecentAISearches } from "@/components/dashboard/RecentAISearches";
@@ -11,10 +12,10 @@ import { StorageUsageCard } from "@/components/dashboard/StorageUsageCard";
 import { ShieldCheck, Sparkles, Bell } from "lucide-react";
 import Link from "next/link";
 import { useDashboardData } from "@/components/dashboard/dashboard-data";
-import { useAuth } from "@/context/AuthContext";
+
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const user = { displayName: "Priya Nair", email: "priya@example.com" };
   const { overviewStats, expiringItems } = useDashboardData();
 
   const displayName = user?.displayName?.split(" ")[0] || user?.email?.split("@")[0] || "there";
